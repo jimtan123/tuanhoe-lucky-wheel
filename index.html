@@ -129,6 +129,8 @@
   #termsBody .faq-q{margin:16px 0 4px;color:var(--cream);font-weight:800;font-size:15.5px;line-height:1.4}
   #termsBody .faq-q:first-child{margin-top:0}
   #termsBody .faq-a{margin:0 0 4px;color:#f3d9ac;font-size:14.5px;line-height:1.6}
+  #termsBody .faq-ex{margin:5px 0 5px 2px;padding:7px 12px;border-left:3px solid #F4C64A;
+    background:rgba(244,198,74,.10);border-radius:0 8px 8px 0;color:#f7e4b6;font-size:13.5px;line-height:1.55}
 
   /* setup */
   #setup{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;
@@ -276,27 +278,44 @@
       <label>Rules &amp; FAQ (opens from ⓘ button — lines ending "?" show as questions)</label>
       <textarea id="termsInput" spellcheck="false" style="min-height:220px">How do I earn a spin?
 Spend RM2,000 on a single receipt and you earn 1 spin. Every extra RM2,000 on the same receipt earns 1 more spin.
+→ RM2,000 = 1 spin
+→ RM6,000 = 3 spins
+→ RM7,500 = 3 spins (the extra RM1,500 does not reach the next RM2,000)
 
 Can I add up smaller receipts to reach RM2,000?
 No. Each spin is earned on one single receipt of RM2,000 or above. Separate receipts cannot be combined, and a receipt cannot be split to make extra spins.
+→ Two receipts of RM1,000 each = 0 spins
+→ One receipt of RM2,000 = 1 spin
 
 Which wheel do I get?
-Silver Wheel for a single purchase of RM2,000 to RM9,999. Gold Wheel unlocks when your single purchase reaches RM10,000 or more.
+Silver Wheel for a single purchase of RM2,000 to RM9,999. Gold Wheel unlocks when your single receipt reaches RM10,000 or more.
+→ RM5,000 = Silver Wheel
+→ RM10,000 = Gold Wheel (plus your Silver spins)
 
 How many times can I spin?
-Silver spins: 1 for every RM2,000 on your single receipt, capped at 3 spins per customer. Gold spins: 1 for every full RM10,000 on a single receipt, so RM10,000 earns 1 Gold spin, RM20,000 earns 2, RM30,000 earns 3, and so on. A Gold-tier purchase also includes up to 3 Silver spins. These caps apply per customer for the whole event.
+Silver spins: 1 for every RM2,000 on your single receipt, capped at 3 spins per customer. Gold spins: 1 for every full RM10,000 on a single receipt. A Gold-tier purchase also includes up to 3 Silver spins. These caps apply per customer for the whole event.
+→ RM8,000 = 3 Silver spins (capped at 3)
+→ RM12,000 = 3 Silver + 1 Gold
+→ RM18,000 = 3 Silver + 1 Gold (still under RM20,000)
+→ RM20,000 = 3 Silver + 2 Gold
+→ RM30,000 = 3 Silver + 3 Gold
 
 When do I spin?
 On the spot, on the same day as your purchase, right after our staff checks your receipt. Spins cannot be saved or used on another day.
+→ Buy today, spin today. You cannot come back next week to use the spin.
 
 Is every spin a win?
 Yes. Every slot on both wheels is a real prize. There are no empty or "try again" slots.
+→ Whatever the pointer lands on, you take home.
 
 How do the cash vouchers work?
 Vouchers apply to your NEXT purchase, not the one you just made. Minimum spend to use: RM50 voucher needs RM500, RM100 needs RM1,000, RM200 needs RM2,000. One voucher per receipt, valid 60 days, not exchangeable for cash, no change given, non-transferable.
+→ Win RM100 voucher today. Next visit spend RM1,000, pay only RM900.
+→ RM50 voucher on a RM300 purchase = not allowed (needs RM500 minimum).
 
 Can I exchange my prize for cash or another item?
 No. Prizes are given exactly as landed on the wheel, while stocks last. If an item is finished, management may replace it with a gift or voucher of similar value. Prizes have no cash value.
+→ Land a Milk Pot but want cash instead? Not allowed, you receive the Milk Pot.
 
 Anything else I should know?
 One spin entitlement per customer, verified by IC and receipt, and recorded by our staff. Splitting receipts, reusing receipts, or claiming spins on behalf of others will void the entitlement. Tuan Hoe management's decision is final.</textarea>
@@ -662,6 +681,7 @@ One spin entitlement per customer, verified by IC and receipt, and recorded by o
     $("termsBody").innerHTML = t.split(/\n/).map(line=>{
       const s=line.trim();
       if(!s) return "";
+      if(s.startsWith("→")) return `<p class="faq-ex">${esc(s)}</p>`;
       return s.endsWith("?") ? `<p class="faq-q">${esc(s)}</p>` : `<p class="faq-a">${esc(s)}</p>`;
     }).join("");
   }
