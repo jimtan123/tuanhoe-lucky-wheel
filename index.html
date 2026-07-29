@@ -1,0 +1,667 @@
+<title>Lucky Spin — Tuan Hoe Event Kiosk</title>
+<style>
+  :root{
+    /* GOLD wheel (default) */
+    --bg1:#9A1620; --bg2:#7A0E12; --bg3:#560A0D; --bg4:#2A0608;
+    --accent:#F4C64A; --accent-deep:#C9992B; --cream:#FBF3DE; --ink:#2A0608;
+    --pill:#F4C64A;
+    --shadow:0 18px 50px rgba(0,0,0,.45);
+  }
+  body[data-wheel="silver"]{
+    /* SILVER wheel — cool platinum / gunmetal */
+    --bg1:#8592A0; --bg2:#5C6774; --bg3:#39424D; --bg4:#1C2126;
+    --accent:#E6EBF0; --accent-deep:#95A3B2; --cream:#F4F8FC; --ink:#1C2126;
+    --pill:#DCE4EC;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--cream);
+    background:radial-gradient(120% 90% at 50% -10%, var(--bg1) 0%, var(--bg2) 42%, var(--bg3) 78%, var(--bg4) 100%);
+    overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:manipulation;
+    transition:background .6s ease;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;opacity:.06;
+    background-image:radial-gradient(circle at 20% 30%, #fff 0 2px, transparent 3px),
+                     radial-gradient(circle at 70% 65%, #fff 0 2px, transparent 3px);
+    background-size:90px 90px;
+  }
+
+  /* ---------- Stage: top-anchored so brand never covered ---------- */
+  #stage{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
+         justify-content:space-between;padding:clamp(14px,3vh,34px) 16px clamp(14px,3vh,30px);gap:1.4vh}
+  .top{display:flex;flex-direction:column;align-items:center;gap:12px;flex:0 0 auto;z-index:8}
+  .brand{text-align:center;line-height:1;filter:drop-shadow(0 3px 0 rgba(0,0,0,.35))}
+  .brand .kicker{font-size:clamp(11px,2.2vw,18px);letter-spacing:.42em;text-transform:uppercase;
+                 color:var(--accent);font-weight:700;padding-left:.42em}
+  .brand h1{margin:.12em 0 0;font-weight:900;font-size:clamp(26px,5.2vw,52px);color:var(--cream);
+            letter-spacing:-.01em;text-shadow:0 2px 0 var(--accent-deep),0 4px 0 rgba(0,0,0,.3);text-wrap:balance}
+
+  /* wheel switch pills */
+  .switch{display:flex;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.16);
+          border-radius:999px;padding:4px;gap:2px;backdrop-filter:blur(4px)}
+  .switch button{border:none;background:transparent;color:var(--cream);opacity:.6;cursor:pointer;
+                 font-weight:800;font-size:clamp(13px,2.2vw,16px);padding:8px 18px;border-radius:999px;
+                 letter-spacing:.03em;transition:.2s}
+  .switch button.on{opacity:1;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+  .switch button[data-w="silver"].on{background:linear-gradient(180deg,#EEF3F8,#B9C6D3)}
+  .switch button[data-w="gold"].on{background:linear-gradient(180deg,#F7D66A,#C9992B)}
+
+  .mid{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:0;width:100%}
+  .wheel-wrap{position:relative;width:min(68vmin,560px);max-height:100%;aspect-ratio:1;flex:0 0 auto}
+  canvas#wheel{width:100%;height:100%;display:block;border-radius:50%;
+    box-shadow:var(--shadow),0 0 0 12px var(--accent),0 0 0 15px var(--accent-deep),0 0 0 30px rgba(0,0,0,.25)}
+  .wheel-wrap.idle canvas#wheel{animation:shimmer 3.2s ease-in-out infinite}
+  @keyframes shimmer{50%{box-shadow:var(--shadow),0 0 0 12px var(--accent),0 0 0 15px var(--accent-deep),
+    0 0 34px 8px rgba(244,198,74,.45),0 0 0 30px rgba(0,0,0,.25)}}
+  body[data-wheel="silver"] .wheel-wrap.idle canvas#wheel{animation:shimmerS 3.2s ease-in-out infinite}
+  @keyframes shimmerS{50%{box-shadow:var(--shadow),0 0 0 12px var(--accent),0 0 0 15px var(--accent-deep),
+    0 0 34px 8px rgba(220,228,236,.5),0 0 0 30px rgba(0,0,0,.25)}}
+
+  .pointer{position:absolute;top:-3%;left:50%;transform:translateX(-50%);z-index:5;width:9%;
+           filter:drop-shadow(0 6px 6px rgba(0,0,0,.5))}
+  .pointer svg{display:block;width:100%;height:auto}
+  .hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;width:22%;aspect-ratio:1;
+       border-radius:50%;border:none;cursor:pointer;
+       background:radial-gradient(circle at 38% 32%, #fff, var(--accent) 45%, var(--accent-deep));
+       color:var(--ink);font-weight:900;font-size:clamp(12px,2.1vw,20px);letter-spacing:.04em;
+       box-shadow:inset 0 -4px 8px rgba(0,0,0,.25),0 6px 16px rgba(0,0,0,.4);
+       display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.05;transition:transform .12s ease}
+  .hub:active{transform:translate(-50%,-50%) scale(.94)}
+  .hub.spinning{cursor:default}
+
+  .tap-hint{font-size:clamp(12px,2.4vw,18px);color:var(--accent);letter-spacing:.06em;opacity:.9;
+            flex:0 0 auto;animation:breathe 2s ease-in-out infinite}
+  @keyframes breathe{50%{opacity:.4}}
+
+  /* suspense vignette (final crawl) */
+  #vignette{position:fixed;inset:0;z-index:7;pointer-events:none;opacity:0;transition:opacity .4s;
+            box-shadow:inset 0 0 min(30vw,240px) min(8vw,70px) rgba(244,198,74,.0)}
+  #vignette.on{opacity:1;animation:heart .55s ease-in-out infinite;
+            box-shadow:inset 0 0 min(30vw,240px) min(8vw,70px) rgba(244,198,74,.55)}
+  body[data-wheel="silver"] #vignette.on{box-shadow:inset 0 0 min(30vw,240px) min(8vw,70px) rgba(220,228,236,.6)}
+  @keyframes heart{50%{filter:brightness(1.5)}}
+
+  /* 3-2-1 countdown */
+  #count{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;pointer-events:none}
+  #count.show{display:flex}
+  #count span{font-weight:900;font-size:clamp(120px,30vw,320px);color:var(--cream);
+    text-shadow:0 0 40px var(--accent),0 6px 0 var(--accent-deep);animation:cpop .6s ease-out}
+  @keyframes cpop{0%{transform:scale(.2);opacity:0}40%{transform:scale(1);opacity:1}100%{transform:scale(1.5);opacity:0}}
+
+  /* win flash */
+  #flash{position:fixed;inset:0;z-index:58;background:#fff;opacity:0;pointer-events:none}
+  #flash.go{animation:flash .5s ease-out}
+  @keyframes flash{0%{opacity:.9}100%{opacity:0}}
+
+  /* top-right controls */
+  .tools{position:fixed;top:14px;right:14px;z-index:20;display:flex;gap:8px}
+  .tools button{width:44px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.18);
+    background:rgba(0,0,0,.28);color:var(--cream);font-size:20px;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+  .tools button:active{transform:scale(.9)}
+  /* terms corner button */
+  #btnTerms{position:fixed;left:14px;bottom:14px;z-index:20;border:1px solid rgba(255,255,255,.18);
+    background:rgba(0,0,0,.28);color:var(--cream);font-size:13px;font-weight:700;letter-spacing:.03em;
+    padding:9px 14px;border-radius:999px;cursor:pointer;backdrop-filter:blur(4px);opacity:.75}
+  #btnTerms:active{transform:scale(.94)}
+  /* terms popup */
+  #terms{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:22px;
+    background:rgba(10,1,2,.8);backdrop-filter:blur(6px)}
+  #terms.show{display:flex}
+  #log{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:22px;
+    background:rgba(10,1,2,.8);backdrop-filter:blur(6px)}
+  #log.show{display:flex}
+  .logrow{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);
+    font-size:14.5px;color:#f3d9ac}
+  .logrow b{color:var(--cream);font-weight:700}
+  .logrow .tag{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;align-self:center}
+  .logrow .tag.silver{background:#B9C6D3;color:#1c2126}
+  .logrow .tag.gold{background:#F7D66A;color:#2A0608}
+  .logrow .t{opacity:.6;font-variant-numeric:tabular-nums;font-size:12.5px}
+  .logempty{color:#d9b48a;text-align:center;padding:30px 0}
+  .terms-card{width:min(520px,94vw);max-height:86vh;overflow:auto;background:#2f0d10;
+    border:1px solid rgba(244,198,74,.35);border-radius:18px;padding:26px;box-shadow:var(--shadow)}
+  .terms-card h3{margin:0 0 14px;color:#F4C64A;font-size:20px}
+  .terms-card pre{white-space:pre-wrap;font-family:inherit;font-size:15px;line-height:1.6;color:#f3d9ac;margin:0 0 18px}
+
+  /* setup */
+  #setup{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;
+    background:rgba(20,3,4,.82);backdrop-filter:blur(6px);padding:20px}
+  .panel{width:min(600px,94vw);max-height:92vh;overflow:auto;background:#2f0d10;
+    border:1px solid rgba(244,198,74,.35);border-radius:20px;padding:26px;box-shadow:var(--shadow)}
+  .panel h2{margin:0 0 4px;font-size:23px;color:#F4C64A}
+  .panel p.sub{margin:0 0 6px;font-size:14px;color:#e8c9a0;line-height:1.5}
+  .wheelblock{border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:16px;margin-top:16px}
+  .wheelblock.silver{background:rgba(150,163,178,.10)}
+  .wheelblock.gold{background:rgba(244,198,74,.08)}
+  .wheelblock h3{margin:0 0 10px;font-size:16px;display:flex;align-items:center;gap:8px}
+  .panel label{display:block;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#F4C64A;margin:12px 0 6px}
+  input.tin{width:100%;padding:11px 13px;border-radius:10px;background:#1c060a;color:var(--cream);
+    font-size:15px;font-weight:700;border:1px solid rgba(244,198,74,.3)}
+  textarea{width:100%;min-height:150px;resize:vertical;border-radius:12px;padding:13px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px;line-height:1.5;
+    background:#1c060a;color:var(--cream);border:1px solid rgba(244,198,74,.3)}
+  textarea:focus,input.tin:focus{outline:2px solid #F4C64A}
+  .hint{font-size:12.5px;color:#d9b48a;margin-top:8px;line-height:1.5}
+  .hint code{background:rgba(244,198,74,.14);padding:1px 5px;border-radius:5px;color:#F4C64A}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:16px}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--cream)}
+  .toggle input{width:18px;height:18px;accent-color:#F4C64A}
+  .btn{border:none;border-radius:12px;padding:14px 22px;font-size:16px;font-weight:800;cursor:pointer;letter-spacing:.02em}
+  .btn-go{background:linear-gradient(180deg,#F4C64A,#C9992B);color:#2A0608;flex:1;min-width:160px}
+  .btn-ghost{background:transparent;color:var(--cream);border:1px solid rgba(255,255,255,.25)}
+  .btn:active{transform:scale(.97)}
+
+  /* win overlay */
+  #win{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:24px}
+  #win.show{display:flex}
+  .win-scrim{position:absolute;inset:0;background:rgba(10,1,2,.78);backdrop-filter:blur(4px)}
+  .win-card{position:relative;text-align:center;z-index:2;max-width:min(680px,92vw);
+    animation:pop .5s cubic-bezier(.2,1.5,.4,1) both}
+  @keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+  .win-card .won{font-size:clamp(15px,3.2vw,24px);letter-spacing:.34em;text-transform:uppercase;color:var(--accent);font-weight:800}
+  .win-card .prize{margin:.16em 0 .1em;font-weight:900;line-height:1.02;color:var(--cream);
+    font-size:clamp(36px,8.4vw,88px);text-wrap:balance;text-shadow:0 3px 0 var(--accent-deep),0 6px 18px rgba(0,0,0,.5)}
+  .win-card .sub2{font-size:clamp(14px,2.6vw,20px);color:#f3d9ac;margin-bottom:1.3em}
+  .win-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  #confetti{position:fixed;inset:0;z-index:56;pointer-events:none;display:none}
+  #confetti.show{display:block}
+
+  @media (prefers-reduced-motion:reduce){
+    .tap-hint,.brand,.wheel-wrap.idle canvas,#vignette.on,#count span{animation:none}
+  }
+</style>
+
+<canvas id="confetti"></canvas>
+<div id="vignette"></div>
+<div id="flash"></div>
+<div id="count"><span></span></div>
+
+<div id="stage">
+  <div class="top">
+    <div class="brand">
+      <div class="kicker">Tuan Hoe · Lucky Spin</div>
+      <h1 id="brandTitle">好运大转盘</h1>
+    </div>
+    <div class="switch" role="tablist">
+      <button data-w="silver" id="swSilver">🥈 Silver</button>
+      <button data-w="gold" id="swGold" class="on">🥇 Gold</button>
+    </div>
+  </div>
+
+  <div class="mid">
+    <div class="wheel-wrap idle" id="wheelWrap">
+      <div class="pointer" aria-hidden="true">
+        <svg viewBox="0 0 100 120">
+          <polygon points="50,120 8,10 92,10" fill="var(--accent)" stroke="var(--accent-deep)" stroke-width="4"/>
+          <circle cx="50" cy="26" r="12" fill="var(--bg2)"/>
+        </svg>
+      </div>
+      <canvas id="wheel" width="1000" height="1000"></canvas>
+      <button class="hub" id="hub">SPIN</button>
+    </div>
+  </div>
+
+  <div class="tap-hint" id="tapHint">👆 Tap the wheel to spin</div>
+</div>
+
+<div class="tools">
+  <button id="btnLog" title="Win log">📋</button>
+  <button id="btnSetup" title="Edit gifts">⚙️</button>
+  <button id="btnFull" title="Fullscreen">⛶</button>
+</div>
+<button id="btnTerms">ⓘ Terms</button>
+
+<!-- WIN LOG -->
+<div id="log">
+  <div class="terms-card">
+    <h3 style="display:flex;justify-content:space-between;align-items:center">
+      <span>📋 Win Log · <span id="logCount">0</span></span>
+      <span id="logClose" style="cursor:pointer;font-size:22px;opacity:.7">✕</span>
+    </h3>
+    <div id="logList" style="max-height:52vh;overflow:auto;margin-bottom:16px"></div>
+    <div class="row" style="margin-top:0">
+      <button class="btn btn-go" id="logExport">Export CSV</button>
+      <button class="btn btn-ghost" id="logClear">Clear log</button>
+    </div>
+  </div>
+</div>
+
+<!-- TERMS POPUP -->
+<div id="terms">
+  <div class="terms-card">
+    <h3>📜 Terms &amp; Conditions</h3>
+    <pre id="termsBody"></pre>
+    <button class="btn btn-go" id="termsClose" style="width:100%">Got it</button>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="panel">
+    <h2>Set up your Lucky Spin</h2>
+    <p class="sub">Two wheels — fill each. Paste gifts one per line.</p>
+
+    <div class="wheelblock silver">
+      <h3>🥈 Silver Wheel</h3>
+      <label>Title on screen</label>
+      <input id="titleSilver" class="tin" value="银盘好运"/>
+      <label>Prizes</label>
+      <textarea id="listSilver" spellcheck="false"></textarea>
+    </div>
+
+    <div class="wheelblock gold">
+      <h3>🥇 Gold Wheel</h3>
+      <label>Title on screen</label>
+      <input id="titleGold" class="tin" value="金盘好运"/>
+      <label>Prizes</label>
+      <textarea id="listGold" spellcheck="false"></textarea>
+    </div>
+
+    <div class="hint">
+      One prize per line. Weight with <code>Prize | 3</code> (higher = more likely).
+      <code>#</code> prefix = rare grand prize (weight 1). 2–24 prizes per wheel.
+    </div>
+
+    <div class="wheelblock" style="background:rgba(255,255,255,.04)">
+      <h3>📜 Terms &amp; fine print</h3>
+      <label>Short line under the prize (win screen)</label>
+      <input id="fineInput" class="tin" value="Collect at counter today only · while stocks last"/>
+      <label>Full terms (opens from ⓘ button on screen)</label>
+      <textarea id="termsInput" spellcheck="false" style="min-height:120px">1. One spin per qualifying purchase. Staff will verify receipt.
+2. Prizes are while stocks last; equivalent value may be substituted.
+3. Cash vouchers must be redeemed same day, in-store only, non-transferable.
+4. "Spin again" prizes grant one extra spin, no cash value.
+5. Tuan Hoe management decision is final.</textarea>
+    </div>
+
+    <div class="row">
+      <label class="toggle"><input type="checkbox" id="soundOn" checked/> Applause + confetti</label>
+      <label class="toggle"><input type="checkbox" id="tickOn" checked/> Peg tick</label>
+      <label class="toggle"><input type="checkbox" id="countOn" checked/> 3-2-1 countdown</label>
+    </div>
+    <div class="row">
+      <label class="toggle"><input type="checkbox" id="removeWon"/> Remove prize after won (one-of-a-kind stock)</label>
+    </div>
+    <div class="row">
+      <button class="btn btn-go" id="build">Save & build →</button>
+      <button class="btn btn-ghost" id="cancelSetup">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- WIN -->
+<div id="win">
+  <div class="win-scrim" id="winScrim"></div>
+  <div class="win-card">
+    <div class="won">🎉 You won 🎉</div>
+    <div class="prize" id="winPrize">—</div>
+    <div class="sub2" id="winSub">Collect at counter today only · while stocks last</div>
+    <div class="win-actions">
+      <button class="btn btn-go" id="winAgain">Spin again</button>
+      <button class="btn btn-ghost" id="winClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const SEG_THEMES = {
+    gold:[ {bg:"#7A0E12",fg:"#FBF3DE"},{bg:"#FBF3DE",fg:"#7A0E12"},
+           {bg:"#C9992B",fg:"#2A0608"},{bg:"#560A0D",fg:"#F4C64A"} ],
+    silver:[ {bg:"#39424D",fg:"#F4F8FC"},{bg:"#EEF3F8",fg:"#2B333D"},
+             {bg:"#9FB3C8",fg:"#1C2126"},{bg:"#5C6774",fg:"#E6EBF0"} ],
+  };
+  const DEFAULTS = {
+    silver:[ "50 元现金券","环保购物袋","再转一次 🎡","精美雨伞",
+             "厨房刀具组","50 元现金券","保温水壶","谢谢惠顾 🙏",
+             "手机支架","# 电风扇","100 元现金券","餐具组" ],
+    gold:[ "200 元现金券","Toshiba 电饭煲","再转一次 🎡","气炸锅",
+           "# Skyworth 43\" 电视","500 元现金券","微波炉","# 冰箱",
+           "吸尘器","300 元现金券","电烤箱","咖啡机" ],
+  };
+
+  const $ = id => document.getElementById(id);
+  const cv = $("wheel"), ctx = cv.getContext("2d");
+  const R = cv.width/2;
+
+  const state = {
+    active:"gold",
+    fine:"Collect at counter today only · while stocks last",
+    terms:"",
+    wheels:{
+      silver:{ title:"银盘好运", items:[], rotation:0 },
+      gold:{   title:"金盘好运", items:[], rotation:0 },
+    }
+  };
+  let spinning=false, audioCtx=null, pendingRemove=-1;
+  const cur = () => state.wheels[state.active];
+  const segColors = () => SEG_THEMES[state.active];
+
+  // ---------- parse ----------
+  function parseList(text){
+    const out=[];
+    for (let raw of text.split("\n")){
+      let line=raw.trim(); if(!line) continue;
+      let weight=null, rare=false;
+      if(line.startsWith("#")){ rare=true; line=line.slice(1).trim(); }
+      const m=line.match(/^(.*?)\s*\|\s*(\d+(?:\.\d+)?)\s*$/);
+      if(m){ line=m[1].trim(); weight=parseFloat(m[2]); }
+      if(!line) continue;
+      out.push({label:line, weight: rare?1:(weight ?? 5)});
+    }
+    return out;
+  }
+
+  // ---------- draw ----------
+  function draw(){
+    const items=cur().items, n=items.length, rot=cur().rotation;
+    ctx.clearRect(0,0,cv.width,cv.height);
+    if(!n) return;
+    const cols=segColors(), seg=(Math.PI*2)/n;
+    ctx.save(); ctx.translate(R,R); ctx.rotate(rot);
+    for(let i=0;i<n;i++){
+      const a0=i*seg, a1=a0+seg, c=cols[i%cols.length];
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R-6,a0,a1); ctx.closePath();
+      ctx.fillStyle=c.bg; ctx.fill();
+      ctx.lineWidth=3; ctx.strokeStyle="rgba(0,0,0,.15)"; ctx.stroke();
+      ctx.save(); ctx.rotate(a0+seg/2);
+      ctx.textAlign="right"; ctx.textBaseline="middle"; ctx.fillStyle=c.fg;
+      const fs=Math.max(20,Math.min(46,640/n));
+      ctx.font=`800 ${fs}px -apple-system,"Segoe UI",Roboto,sans-serif`;
+      ctx.fillText(fit(items[i].label,R-70,fs),R-40,0);
+      ctx.restore();
+    }
+    ctx.restore();
+    ctx.save(); ctx.translate(R,R);
+    const peg=getComputedStyle(document.body).getPropertyValue("--pill").trim()||"#F4C64A";
+    for(let i=0;i<n;i++){ const a=i*seg+rot;
+      ctx.beginPath(); ctx.arc(Math.cos(a)*(R-8),Math.sin(a)*(R-8),7,0,Math.PI*2);
+      ctx.fillStyle=peg; ctx.fill(); }
+    ctx.restore();
+  }
+  function fit(t,maxw,fs){
+    ctx.font=`800 ${fs}px -apple-system,sans-serif`;
+    if(ctx.measureText(t).width<=maxw) return t;
+    while(t.length>1 && ctx.measureText(t+"…").width>maxw) t=t.slice(0,-1);
+    return t+"…";
+  }
+
+  function pickWinner(){
+    const items=cur().items, total=items.reduce((s,it)=>s+it.weight,0);
+    let r=Math.random()*total;
+    for(let i=0;i<items.length;i++){ r-=items[i].weight; if(r<=0) return i; }
+    return items.length-1;
+  }
+
+  // ---------- spin (with 3-2-1) ----------
+  function requestSpin(){
+    if(spinning || cur().items.length<2) return;
+    ensureAudio();
+    if($("countOn").checked) countdown(launchSpin);
+    else launchSpin();
+  }
+  function countdown(done){
+    spinning=true;
+    $("wheelWrap").classList.remove("idle");
+    $("tapHint").style.visibility="hidden";
+    const el=$("count"), sp=el.firstElementChild;
+    let n=3;
+    el.classList.add("show");
+    const step=()=>{
+      if(n<=0){ el.classList.remove("show"); done(); return; }
+      sp.textContent = n; sp.style.animation="none"; void sp.offsetWidth; sp.style.animation="";
+      beep(n===1?660:440); n--;
+      setTimeout(step,650);
+    };
+    step();
+  }
+  function launchSpin(){
+    spinning=true;
+    $("wheelWrap").classList.remove("idle");
+    $("hub").classList.add("spinning"); $("hub").textContent="…";
+    $("tapHint").style.visibility="hidden";
+
+    const items=cur().items, n=items.length, seg=(Math.PI*2)/n;
+    const winner=pickWinner();
+    const jitter=(Math.random()-.5)*seg*.7;
+    const targetMod=(-Math.PI/2)-((winner+.5)*seg)+jitter;
+    const turns=6+Math.floor(Math.random()*3);
+    const twoPi=Math.PI*2;
+    const start=cur().rotation;
+    let end=Math.ceil(start/twoPi)*twoPi + turns*twoPi;
+    let c=((end%twoPi)+twoPi)%twoPi, w=((targetMod%twoPi)+twoPi)%twoPi;
+    end += (w-c); if(end<start+turns*twoPi) end+=twoPi;
+
+    const dur=5200+Math.random()*1400, t0=performance.now();
+    let lastSeg=currentSegment();
+
+    function frame(now){
+      let p=Math.min(1,(now-t0)/dur);
+      const eased=1-Math.pow(1-p,3.2);
+      cur().rotation=start+(end-start)*eased;
+      draw();
+      const s=currentSegment();
+      if(s!==lastSeg){ lastSeg=s; tick(p); }
+      // suspense final crawl
+      if(p>0.86) $("vignette").classList.add("on");
+      if(p<1) requestAnimationFrame(frame);
+      else { cur().rotation=end; draw(); $("vignette").classList.remove("on"); finish(winner); }
+    }
+    requestAnimationFrame(frame);
+  }
+  function currentSegment(){
+    const n=cur().items.length, seg=(Math.PI*2)/n;
+    let local=(-Math.PI/2)-cur().rotation;
+    local=((local%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
+    return Math.floor(local/seg)%n;
+  }
+  function finish(winner){
+    spinning=false;
+    $("hub").classList.remove("spinning"); $("hub").textContent="SPIN";
+    const prize=cur().items[winner].label.replace(/^#\s*/,"");
+    $("winPrize").textContent=prize;
+    flash();
+    logWin(state.active, prize);
+    $("win").classList.add("show");
+    if($("soundOn").checked){ applause(); confettiBurst(); }
+    if($("removeWon").checked && cur().items.length>2) pendingRemove=winner;
+  }
+
+  // ---------- win log (localStorage) ----------
+  const LOG_KEY="tuanhoe_winlog";
+  function readLog(){ try{ return JSON.parse(localStorage.getItem(LOG_KEY))||[]; }catch(e){ return []; } }
+  function writeLog(a){ try{ localStorage.setItem(LOG_KEY,JSON.stringify(a)); }catch(e){} }
+  function logWin(wheel,prize){
+    const a=readLog();
+    a.push({ ts:new Date().toISOString(), wheel, prize });
+    writeLog(a);
+  }
+  function pad(n){ return String(n).padStart(2,"0"); }
+  function fmtTime(iso){ const d=new Date(iso);
+    return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+  function renderLog(){
+    const a=readLog(); $("logCount").textContent=a.length;
+    const box=$("logList");
+    if(!a.length){ box.innerHTML='<div class="logempty">No spins recorded yet.</div>'; return; }
+    box.innerHTML = a.slice().reverse().map(r=>
+      `<div class="logrow"><span class="tag ${r.wheel}">${r.wheel==="gold"?"GOLD":"SILVER"}</span>`+
+      `<b style="flex:1">${esc(r.prize)}</b><span class="t">${fmtTime(r.ts)}</span></div>`
+    ).join("");
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+  function exportCSV(){
+    const a=readLog();
+    if(!a.length){ alert("Log is empty."); return; }
+    const rows=[["Time","Wheel","Prize"]].concat(a.map(r=>[
+      fmtTime(r.ts), r.wheel, r.prize ]));
+    const csv=rows.map(row=>row.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+    const d=new Date();
+    const name=`tuanhoe-winlog-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.csv`;
+    const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    const url=URL.createObjectURL(blob), link=document.createElement("a");
+    link.href=url; link.download=name; document.body.appendChild(link); link.click();
+    link.remove(); URL.revokeObjectURL(url);
+  }
+
+  // ---------- audio ----------
+  function ensureAudio(){
+    if(!audioCtx){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+    if(audioCtx && audioCtx.state==="suspended") audioCtx.resume();
+  }
+  function beep(freq){
+    if(!audioCtx) return; const t=audioCtx.currentTime;
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type="triangle"; o.frequency.value=freq;
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.3,t+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,t+.35);
+    o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+.4);
+  }
+  function tick(p){
+    if(!audioCtx || !$("tickOn").checked) return;
+    const t=audioCtx.currentTime, o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type="square"; o.frequency.value=900+Math.random()*300;
+    const vol = p>0.86 ? .32 : .16;                 // louder in final crawl
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.002);
+    g.gain.exponentialRampToValueAtTime(.0001,t+.06);
+    o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+.07);
+  }
+  function applause(){
+    if(!audioCtx) return; const t0=audioCtx.currentTime, dur=2.6;
+    const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*dur,audioCtx.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    const src=audioCtx.createBufferSource(); src.buffer=buf;
+    const bp=audioCtx.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=1600; bp.Q.value=.7;
+    const g=audioCtx.createGain();
+    g.gain.setValueAtTime(.0001,t0); g.gain.exponentialRampToValueAtTime(.5,t0+.15);
+    g.gain.setValueAtTime(.5,t0+1.4); g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+    src.connect(bp).connect(g).connect(audioCtx.destination); src.start(t0); src.stop(t0+dur);
+    for(let i=0;i<26;i++){
+      const t=t0+Math.random()*1.8;
+      const nb=audioCtx.createBufferSource();
+      const clap=audioCtx.createBuffer(1,audioCtx.sampleRate*0.05,audioCtx.sampleRate), cd=clap.getChannelData(0);
+      for(let j=0;j<cd.length;j++) cd[j]=(Math.random()*2-1)*(1-j/cd.length);
+      nb.buffer=clap;
+      const hp=audioCtx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=1200;
+      const cg=audioCtx.createGain(); cg.gain.setValueAtTime(.25+Math.random()*.2,t);
+      cg.gain.exponentialRampToValueAtTime(.0001,t+.08);
+      nb.connect(hp).connect(cg).connect(audioCtx.destination); nb.start(t); nb.stop(t+.09);
+    }
+    [523,659,784,1047].forEach((f,i)=>{
+      const t=t0+.05+i*.09, o=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o.type="triangle"; o.frequency.value=f;
+      g2.gain.setValueAtTime(.0001,t); g2.gain.exponentialRampToValueAtTime(.22,t+.02);
+      g2.gain.exponentialRampToValueAtTime(.0001,t+.5);
+      o.connect(g2).connect(audioCtx.destination); o.start(t); o.stop(t+.55);
+    });
+  }
+
+  // ---------- confetti + flash ----------
+  const ccv=$("confetti"), cctx=ccv.getContext("2d");
+  let confetti=[], confRAF=null;
+  function sizeConf(){ ccv.width=innerWidth; ccv.height=innerHeight; }
+  function confettiBurst(){
+    sizeConf(); ccv.classList.add("show");
+    const cols=["#F4C64A","#FBF3DE","#2E9E7B","#E7563B","#C9992B","#ffffff","#9FC7E8"];
+    for(let i=0;i<220;i++){
+      confetti.push({x:innerWidth*(.3+Math.random()*.4),y:innerHeight*.35,
+        vx:(Math.random()-.5)*16,vy:-(6+Math.random()*13),g:.35+Math.random()*.25,
+        s:6+Math.random()*9,rot:Math.random()*6.28,vr:(Math.random()-.5)*.4,
+        col:cols[i%cols.length],life:0,max:120+Math.random()*60});
+    }
+    if(!confRAF) confLoop();
+  }
+  function confLoop(){
+    cctx.clearRect(0,0,ccv.width,ccv.height);
+    confetti=confetti.filter(p=>p.life<p.max && p.y<ccv.height+40);
+    for(const p of confetti){ p.life++; p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.vx*=.99; p.rot+=p.vr;
+      cctx.save(); cctx.translate(p.x,p.y); cctx.rotate(p.rot);
+      cctx.fillStyle=p.col; cctx.globalAlpha=Math.max(0,1-p.life/p.max);
+      cctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6); cctx.restore(); }
+    if(confetti.length) confRAF=requestAnimationFrame(confLoop);
+    else { confRAF=null; ccv.classList.remove("show"); }
+  }
+  function flash(){ const f=$("flash"); f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); }
+  addEventListener("resize",()=>{ if(cur().items.length) draw(); });
+
+  // ---------- wheel switch ----------
+  function switchWheel(w){
+    if(spinning || w===state.active) return;
+    state.active=w;
+    document.body.setAttribute("data-wheel",w);
+    $("swSilver").classList.toggle("on",w==="silver");
+    $("swGold").classList.toggle("on",w==="gold");
+    $("brandTitle").textContent=cur().title;
+    draw();
+  }
+
+  // ---------- setup ----------
+  function openSetup(){ $("setup").style.display="flex"; }
+  function closeSetup(){ $("setup").style.display="none"; }
+  function build(){
+    const s=parseList($("listSilver").value), g=parseList($("listGold").value);
+    if(s.length<2 || g.length<2){ alert("Each wheel needs at least 2 prizes."); return; }
+    state.wheels.silver.items=s; state.wheels.silver.title=$("titleSilver").value.trim()||"Silver";
+    state.wheels.gold.items=g;   state.wheels.gold.title=$("titleGold").value.trim()||"Gold";
+    state.wheels.silver.rotation=0; state.wheels.gold.rotation=0;
+    state.fine=$("fineInput").value.trim();
+    state.terms=$("termsInput").value.trim();
+    $("winSub").textContent=state.fine;
+    $("winSub").style.display = state.fine ? "" : "none";
+    $("brandTitle").textContent=cur().title;
+    draw(); closeSetup();
+  }
+  function closeWin(){
+    $("win").classList.remove("show");
+    $("tapHint").style.visibility="visible";
+    $("wheelWrap").classList.add("idle");
+    if(pendingRemove>=0){ cur().items.splice(pendingRemove,1); pendingRemove=-1; cur().rotation=0; draw(); }
+  }
+
+  // ---------- wiring ----------
+  $("hub").addEventListener("click",requestSpin);
+  $("wheel").addEventListener("click",()=>{ if(!spinning) requestSpin(); });
+  $("swSilver").addEventListener("click",()=>switchWheel("silver"));
+  $("swGold").addEventListener("click",()=>switchWheel("gold"));
+  $("btnTerms").addEventListener("click",()=>{
+    $("termsBody").textContent = state.terms || "No terms set.";
+    $("terms").classList.add("show");
+  });
+  $("termsClose").addEventListener("click",()=>$("terms").classList.remove("show"));
+  $("terms").addEventListener("click",e=>{ if(e.target.id==="terms") $("terms").classList.remove("show"); });
+  $("btnLog").addEventListener("click",()=>{ renderLog(); $("log").classList.add("show"); });
+  $("logClose").addEventListener("click",()=>$("log").classList.remove("show"));
+  $("log").addEventListener("click",e=>{ if(e.target.id==="log") $("log").classList.remove("show"); });
+  $("logExport").addEventListener("click",exportCSV);
+  $("logClear").addEventListener("click",()=>{
+    if(confirm("Clear the whole win log? Export first if you need it.")){ writeLog([]); renderLog(); }
+  });
+  $("btnSetup").addEventListener("click",openSetup);
+  $("cancelSetup").addEventListener("click",()=>{ if(cur().items.length) closeSetup(); });
+  $("build").addEventListener("click",build);
+  $("winAgain").addEventListener("click",()=>{ closeWin(); setTimeout(requestSpin,240); });
+  $("winClose").addEventListener("click",closeWin);
+  $("winScrim").addEventListener("click",closeWin);
+  $("btnFull").addEventListener("click",()=>{
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  });
+
+  // init
+  $("listSilver").value=DEFAULTS.silver.join("\n");
+  $("listGold").value=DEFAULTS.gold.join("\n");
+  state.wheels.silver.items=parseList($("listSilver").value);
+  state.wheels.gold.items=parseList($("listGold").value);
+  state.fine=$("fineInput").value.trim();
+  state.terms=$("termsInput").value.trim();
+  $("winSub").textContent=state.fine;
+  document.body.setAttribute("data-wheel","gold");
+  $("brandTitle").textContent=cur().title;
+  draw();
+  closeSetup();
+})();
+</script>
