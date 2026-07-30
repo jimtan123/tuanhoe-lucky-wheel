@@ -443,6 +443,14 @@ One spin entitlement per customer, verified by IC and receipt, and recorded by o
     ctx.clearRect(0,0,cv.width,cv.height);
     if(!n) return;
     const cols=segColors(), seg=(Math.PI*2)/n;
+    // text lives between the rim and the hub; pick ONE font size that fits the
+    // longest label so nothing is squeezed, covered, or ellipsised.
+    const xOuter=R-24, maxw=xOuter-R*0.30;
+    const baseFs=Math.max(18,Math.min(44,700/n));
+    ctx.font=`800 ${baseFs}px -apple-system,"Segoe UI",Roboto,sans-serif`;
+    let widest=0;
+    for(const it of items) widest=Math.max(widest,ctx.measureText(it.label).width);
+    const labelFs = widest>maxw ? Math.max(14,Math.floor(baseFs*maxw/widest)) : baseFs;
     ctx.save(); ctx.translate(R,R); ctx.rotate(rot);
     for(let i=0;i<n;i++){
       const a0=i*seg, a1=a0+seg, c=cols[i%cols.length];
@@ -451,9 +459,8 @@ One spin entitlement per customer, verified by IC and receipt, and recorded by o
       ctx.lineWidth=3; ctx.strokeStyle="rgba(0,0,0,.15)"; ctx.stroke();
       ctx.save(); ctx.rotate(a0+seg/2);
       ctx.textAlign="right"; ctx.textBaseline="middle"; ctx.fillStyle=c.fg;
-      const fs=Math.max(20,Math.min(46,640/n));
-      ctx.font=`800 ${fs}px -apple-system,"Segoe UI",Roboto,sans-serif`;
-      ctx.fillText(fit(items[i].label,R-70,fs),R-40,0);
+      ctx.font=`800 ${labelFs}px -apple-system,"Segoe UI",Roboto,sans-serif`;
+      ctx.fillText(fit(items[i].label,maxw,labelFs),xOuter,0);
       ctx.restore();
     }
     ctx.restore();
