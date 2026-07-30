@@ -39,6 +39,28 @@
   .brand h1{margin:.12em 0 0;font-weight:900;font-size:clamp(26px,5.2vw,52px);color:var(--cream);
             letter-spacing:-.01em;text-shadow:0 2px 0 var(--accent-deep),0 4px 0 rgba(0,0,0,.3);text-wrap:balance}
 
+  /* ---------- July canopy event banner + urgency badge ---------- */
+  .eventbar{display:flex;align-items:center;justify-content:center;gap:clamp(8px,2vw,14px);
+            flex-wrap:wrap;flex:0 0 auto;z-index:8}
+  .eventbar .evt-title{font-weight:900;letter-spacing:.02em;text-transform:uppercase;
+            font-size:clamp(13px,2.8vw,22px);color:var(--cream);line-height:1;
+            text-shadow:0 2px 0 var(--accent-deep),0 3px 8px rgba(0,0,0,.4)}
+  .eventbar .evt-title .cn{color:var(--accent);margin-right:.35em}
+  .evt-badge{display:inline-flex;align-items:center;gap:.3em;font-weight:900;
+            font-size:clamp(12px,2.6vw,20px);letter-spacing:.04em;color:#fff;
+            padding:.32em .8em;border-radius:999px;white-space:nowrap;
+            background:linear-gradient(180deg,#E7563B,#B4271A);
+            box-shadow:0 4px 14px rgba(183,39,26,.55),inset 0 1px 0 rgba(255,255,255,.35);
+            transform-origin:center;animation:evtpop 1.3s ease-in-out infinite}
+  body[data-wheel="silver"] .evt-badge{background:linear-gradient(180deg,#F0574C,#B4271A)}
+  @keyframes evtpop{
+    0%,100%{transform:scale(1) rotate(-2deg)}
+    12%{transform:scale(1.22) rotate(1deg)}
+    24%{transform:scale(.94) rotate(-1deg)}
+    36%{transform:scale(1.12) rotate(1deg)}
+    50%{transform:scale(1) rotate(0deg)}
+  }
+
   /* wheel switch pills */
   .switch{display:flex;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.16);
           border-radius:999px;padding:4px;gap:2px;backdrop-filter:blur(4px)}
@@ -176,7 +198,7 @@
   #confetti.show{display:block}
 
   @media (prefers-reduced-motion:reduce){
-    .tap-hint,.brand,.wheel-wrap.idle canvas,#vignette.on,#count span{animation:none}
+    .tap-hint,.brand,.wheel-wrap.idle canvas,#vignette.on,#count span,.evt-badge{animation:none}
   }
 </style>
 
@@ -190,6 +212,10 @@
     <div class="brand">
       <div class="kicker">Tuan Hoe · Lucky Spin</div>
       <h1 id="brandTitle">好运大转盘</h1>
+    </div>
+    <div class="eventbar">
+      <span class="evt-title"><span class="cn">七月帐篷大促</span>July Canopy Sale</span>
+      <span class="evt-badge">⏳ 4 DAYS ONLY · 仅限4天</span>
     </div>
     <div class="switch" role="tablist">
       <button data-w="silver" id="swSilver">🥈 Silver</button>
@@ -288,17 +314,16 @@ No. Each spin is earned on one single receipt of RM2,000 or above. Separate rece
 → One receipt of RM2,000 = 1 spin
 
 Which wheel do I get?
-Silver Wheel for a single purchase of RM2,000 to RM9,999. Gold Wheel unlocks when your single receipt reaches RM10,000 or more.
+Silver Wheel for a single purchase of RM2,000 to RM7,999. Gold Wheel unlocks when your single receipt reaches RM8,000 or more.
 → RM5,000 = Silver Wheel
-→ RM10,000 = Gold Wheel (plus your Silver spins)
+→ RM8,000 = Gold Wheel (plus your Silver spins)
 
 How many times can I spin?
-Silver spins: 1 for every RM2,000 on your single receipt, capped at 3 spins per customer. Gold spins: 1 for every full RM10,000 on a single receipt. A Gold-tier purchase also includes up to 3 Silver spins. These caps apply per customer for the whole event.
-→ RM8,000 = 3 Silver spins (capped at 3)
-→ RM12,000 = 3 Silver + 1 Gold
-→ RM18,000 = 3 Silver + 1 Gold (still under RM20,000)
-→ RM20,000 = 3 Silver + 2 Gold
-→ RM30,000 = 3 Silver + 3 Gold
+Silver spins: 1 for every RM2,000 on your single receipt, capped at 3 spins per customer. Gold spins: 1 for every full RM8,000 on a single receipt. A Gold-tier purchase also includes up to 3 Silver spins. These caps apply per customer for the whole event.
+→ RM6,000 = 3 Silver spins (capped at 3)
+→ RM8,000 = 3 Silver + 1 Gold
+→ RM16,000 = 3 Silver + 2 Gold
+→ RM24,000 = 3 Silver + 3 Gold
 
 When do I spin?
 On the spot, on the same day as your purchase, right after our staff checks your receipt. Spins cannot be saved or used on another day.
@@ -360,17 +385,22 @@ One spin entitlement per customer, verified by IC and receipt, and recorded by o
              {bg:"#9FB3C8",fg:"#1C2126"},{bg:"#5C6774",fg:"#E6EBF0"} ],
   };
   const DEFAULTS = {
-    // SILVER — 20 slots, each = 5%
+    // SILVER — 20 slots (RM2,000+ single receipt)
     silver:[
-      "RM100 Voucher","RM50 Voucher","RM50 Voucher","RM50 Voucher","RM50 Voucher",
-      "Laptop Bag","Premium Handheld Fan","Premium Handheld Fan","Premium Handheld Fan",
-      "Milk Pot","Milk Pot","Multipurpose Pot","Normal Handheld Fan","Normal Handheld Fan",
-      "Football","Lunch Box","Toshiba Towel","Downy Small","Downy Small","Downy Small" ],
-    // GOLD — 16 slots, each = 6.25%
+      "RM50 Cash Voucher","RM50 Cash Voucher","RM50 Cash Voucher",
+      "RM20 Cash Voucher","RM20 Cash Voucher","RM20 Cash Voucher","RM20 Cash Voucher","RM20 Cash Voucher",
+      "Toshiba Soft Towel","Toshiba Soft Towel","Toshiba Soft Towel",
+      "Deluxe Handheld Fan","Deluxe Handheld Fan","Deluxe Handheld Fan",
+      "Lunch Keeper","Lunch Keeper","Lunch Keeper",
+      "Laundry Care","Laundry Care","Laundry Care" ],
+    // GOLD — 16 slots (RM8,000+ single receipt). # = rare grand prize.
     gold:[
-      "RM200 Voucher","RM200 Voucher","RM100 Voucher","RM100 Voucher","RM100 Voucher",
-      "Zebra Pot","Zebra Pot","Laptop Bag","Laptop Bag","Multipurpose Pot","Multipurpose Pot",
-      "Multipurpose Pot","Milk Pot","Milk Pot","Premium Handheld Fan","Premium Handheld Fan" ],
+      "RM200 Cash Voucher","RM200 Cash Voucher","RM200 Cash Voucher",
+      "RM100 Cash Voucher","RM100 Cash Voucher","RM100 Cash Voucher",
+      "Premium Milk Pot","Premium Milk Pot","Premium Milk Pot","Premium Milk Pot",
+      "Multi-purpose Pot","Multi-purpose Pot","Multi-purpose Pot",
+      "Executive Laptop Bag","Executive Laptop Bag",
+      "#Skyworth Party Speaker" ],
   };
 
   const $ = id => document.getElementById(id);
